@@ -165,15 +165,16 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .qi-lbl{font-size:10px;color:var(--text-3);font-weight:500;letter-spacing:.02em;text-transform:uppercase}
 .qi-inp{font-size:12px;font-family:var(--font);padding:6px 8px;border:1px solid var(--border-md);border-radius:5px;background:var(--bg);color:var(--text);outline:none;width:100%}
 .qi-inp:focus{border-color:var(--border-strong);background:var(--surface)}
-.qi-inp.ai{border-color:#9FE1CB;background:#F2FDF9}
+
 .qi-status{display:flex;align-items:center;gap:6px;padding:5px 10px 8px;flex-wrap:wrap}
 .sdot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
 .s-analyzing{background:var(--amber);animation:pulse 1s ease-in-out infinite}
 .s-done{background:var(--teal)}
+.s-ready{background:var(--teal-mid)}
 .s-error{background:var(--red)}
 .s-saving{background:var(--blue);animation:pulse 1s ease-in-out infinite}
 .stext{font-size:10px;color:var(--text-3);font-family:var(--mono)}
-.ai-badge{font-size:9px;background:var(--teal-bg);color:var(--teal);padding:1px 6px;border-radius:8px;font-weight:500}
+
 .qi-rm{font-size:13px;color:var(--text-3);background:none;border:none;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
@@ -317,14 +318,14 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       <input type="file" multiple accept="image/*" id="file-input">
       <div class="dz-icon">↑</div>
       <div class="dz-title">스크린샷을 드래그하거나 탭해서 선택</div>
-      <div class="dz-sub">PNG, JPG · 여러 장 동시 업로드 가능<br>AI가 광고주·업종·지면·상품 유형을 자동으로 채워줘요</div>
-      <div class="dz-chip">💡 촬영 후 바로 모바일에서 업로드도 가능해요</div>
+      <div class="dz-sub">PNG, JPG · 여러 장 동시 업로드 가능<br>이미지 선택 후 정보를 직접 입력해 주세요</div>
+      <div class="dz-chip">💡 모바일에서 촬영 후 바로 업로드할 수 있어요</div>
     </div>
     <div id="queue-wrap" style="display:none">
       <div class="queue-header">
         <div>
           <div class="qlabel">업로드 대기 목록</div>
-          <div class="qhint">초록 테두리 = AI 자동입력 · 확인 후 전체 저장하세요</div>
+          <div class="qhint">정보를 입력한 뒤 전체 저장하세요</div>
         </div>
         <button class="btn btn-primary" id="btn-save-all" onclick="saveAll()" disabled>전체 저장 →</button>
       </div>
@@ -376,8 +377,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 
 <script>
 // ── CONFIG ──────────────────────────────────────────────
-const GAS_URL = "https://script.google.com/a/macros/tving.com/s/AKfycbyc02s7q5dp8F5NGvRhJgvkZaOGtXFukPsRbWtL6L3ho5KqEfv27oBp8aC2FugwV-JrsA/exec";
-const CLAUDE_MODEL = "claude-sonnet-4-20250514";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyLVAeW9R4vEbjGH5ln0aYhcVnieN1zTw4GBNFW8D_0dhN9PkAnMPEKDb7wuUM9pSwX/exec";
 
 const INDUSTRIES=["Alcohol","App/Service","Auto","Bank/Card","Beauty","Beverage","Commerce/Retail","Consumer Goods","Consumer Electronics","Education","Entertainment","Fashion","Food","Food Franchise","Functional Food","Game","Government","Home","Insurance","Investment/Securities","Pharma","PR","Telecom","Travel","Etc."];
 const PLATFORMS=["TVING","Wavve"];
@@ -579,48 +579,19 @@ function addFiles(files) {
     list.appendChild(div);
     document.getElementById('queue-wrap').style.display='block';
     document.getElementById('btn-save-all').disabled=false;
-    setTimeout(()=>analyzeImage(file,idx), i*500);
+    analyzeImage(file, idx);
   });
 }
 
-async function analyzeImage(file,idx) {
-  setQS(idx,'analyzing','AI가 이미지를 분석하고 있어요...');
-  const b64 = await toBase64(file);
-  try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:400,messages:[{role:'user',content:[
-        {type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:b64}},
-        {type:'text',text:`Korean streaming ad screenshot. Return ONLY JSON (no markdown): {"advertiser":"English brand name","industry":"one of:${INDUSTRIES.join(',')}","platform":"TVING or Wavve","device":"one of:${DEVICES.join(',')}","product":"one of:${PRODUCTS.join(',')}"}`}
-      ]}]})
-    });
-    const data = await resp.json();
-    const text = data.content?.find(b=>b.type==='text')?.text||'{}';
-    let p={};try{p=JSON.parse(text.replace(/```json|```/g,''))}catch(e){}
-    queue[idx]={...queue[idx],...p,aiDone:true};
-    refillQ(idx);
-    setQS(idx,'done','AI 분석 완료 — 확인 후 수정해 주세요');
-  } catch(e) {
-    setQS(idx,'error','분석 실패 — 직접 입력해 주세요');
-  }
+function analyzeImage(file, idx) {
+  setQS(idx, 'ready', '정보를 입력하고 전체 저장을 눌러주세요');
 }
 
 function setQS(idx,type,text) {
   const el=document.getElementById(`qs-${idx}`);if(!el)return;
-  const ai=type==='done'?`<span class="ai-badge">AI 자동입력</span>`:'';
-  el.innerHTML=`<span class="sdot s-${type}"></span><span class="stext">${text}</span>${ai}`;
+  el.innerHTML=`<span class="sdot s-${type}"></span><span class="stext">${text}</span>`;
 }
-function refillQ(idx) {
-  const item=queue[idx];if(!item)return;
-  const map={adv:'advertiser',ind:'industry',plat:'platform',dev:'device',prod:'product'};
-  Object.entries(map).forEach(([k,v])=>{
-    const el=document.getElementById(`qi-${k}-${idx}`);if(!el)return;
-    if(el.tagName==='INPUT')el.value=item[v]||'';
-    else Array.from(el.options).forEach(o=>{if(o.value===item[v])o.selected=true});
-    el.classList.add('ai');
-  });
-}
+
 function removeQ(idx){queue[idx]=null;const el=document.getElementById(`qi-${idx}`);if(el)el.remove();if(!queue.filter(Boolean).length){document.getElementById('queue-wrap').style.display='none';document.getElementById('btn-save-all').disabled=true;}}
 
 async function saveAll() {
