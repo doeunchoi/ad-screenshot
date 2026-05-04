@@ -148,8 +148,16 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .queue-list{display:flex;flex-direction:column;gap:8px}
 .qi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
 .qi-top{display:flex;gap:10px;padding:10px;align-items:flex-start}
-.qi-thumb{width:80px;min-width:80px;aspect-ratio:16/9;border-radius:5px;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center}
+.qi-thumb{width:80px;min-width:80px;aspect-ratio:16/9;border-radius:5px;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:zoom-in;position:relative;flex-shrink:0}
 .qi-thumb img{width:100%;height:100%;object-fit:cover}
+.qi-thumb::after{content:'🔍';position:absolute;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:14px;opacity:0;transition:opacity .15s;display:none}
+.qi-thumb:hover::after{opacity:1;display:flex}
+/* image preview lightbox */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:none;align-items:center;justify-content:center;padding:20px;cursor:zoom-out}
+.lightbox.open{display:flex}
+.lightbox img{max-width:100%;max-height:90vh;border-radius:8px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+.lightbox-close{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);border:none;cursor:pointer;color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center}
+.lightbox-close:hover{background:rgba(255,255,255,.25)}
 .qi-fields{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px}
 @media(max-width:480px){.qi-fields{grid-template-columns:1fr}}
 .qi-field{display:flex;flex-direction:column;gap:3px}
@@ -360,6 +368,12 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
 </div>
 
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
 <script>
 // ── CONFIG ──────────────────────────────────────────────
 const GAS_URL = "https://script.google.com/a/macros/tving.com/s/AKfycbyc02s7q5dp8F5NGvRhJgvkZaOGtXFukPsRbWtL6L3ho5KqEfv27oBp8aC2FugwV-JrsA/exec";
@@ -549,7 +563,7 @@ function addFiles(files) {
     div.className='qi'; div.id=`qi-${idx}`;
     div.innerHTML=`
       <div class="qi-top">
-        <div class="qi-thumb"><img src="${url}" alt=""></div>
+        <div class="qi-thumb" onclick="openLightbox('${url}')" title="클릭하면 크게 볼 수 있어요"><img src="${url}" alt=""></div>
         <div class="qi-fields">
           <div class="qi-field"><div class="qi-lbl">광고주</div><input class="qi-inp" id="qi-adv-${idx}" placeholder="예: Samsung"></div>
           <div class="qi-field"><div class="qi-lbl">업종</div><select class="qi-inp" id="qi-ind-${idx}">${selOpts(INDUSTRIES,'','선택')}</select></div>
@@ -864,6 +878,26 @@ function toast(msg, type='') {
   requestAnimationFrame(()=>{ requestAnimationFrame(()=>el.classList.add('show')); });
   setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),300)},2800);
 }
+
+// ── LIGHTBOX ─────────────────────────────────────────
+function openLightbox(src) {
+  const lb = document.getElementById('lightbox');
+  const img = document.getElementById('lightbox-img');
+  img.src = src;
+  lb.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
+// ESC key closes lightbox
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') {
+    closeLightbox();
+    closeModal();
+  }
+});
 
 // ── START ─────────────────────────────────────────────────
 initUpload();
