@@ -425,7 +425,7 @@ async function loadItems() {
   setStatus('loading');
   showBrowseLoading();
   try {
-    const res = await fetch(GAS_URL + "?action=list", { credentials: "include" });
+    const res = await fetch(GAS_URL + "?action=list");
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     allItems = data.map(r => ({...r, phClass: r.platform==='Wavve'?'ph-wavve':'ph-tving'}));
@@ -619,7 +619,7 @@ async function saveAll() {
         campaign: document.getElementById(`qi-camp-${idx}`)?.value||'',
         date: new Date().toISOString().slice(0,10).replace(/-/g,'.'),
       };
-      const res = await fetch(GAS_URL, {method:"POST", credentials:"include", body:JSON.stringify(payload)});
+      const res = await fetch(GAS_URL, {method:"POST",  body:JSON.stringify(payload)});
       const data = await res.json();
       if(data.error) throw new Error(data.error);
       setQS(idx,'done','저장 완료 ✓');
@@ -690,7 +690,7 @@ async function saveEdit(id) {
   };
   closeModal();
   try {
-    const res=await fetch(GAS_URL,{method:"POST",credentials:"include",body:JSON.stringify(payload)});
+    const res=await fetch(GAS_URL,{method:"POST",body:JSON.stringify(payload)});
     const data=await res.json();
     if(data.error) throw new Error(data.error);
     toast('수정 완료!','success');
@@ -720,7 +720,7 @@ function openDelete(id) {
 async function confirmDelete(id) {
   closeModal();
   try {
-    const res=await fetch(GAS_URL,{method:"POST",credentials:"include",body:JSON.stringify({action:"delete",id})});
+    const res=await fetch(GAS_URL,{method:"POST",body:JSON.stringify({action:"delete",id})});
     const data=await res.json();
     if(data.error) throw new Error(data.error);
     toast('삭제 완료','success');
